@@ -54,6 +54,8 @@ function iww_bulk_form(){
 				'sku' => $child->get_sku(),
 				'attr_str' => wc_get_formatted_variation( $child->get_variation_attributes(), true, false, true ),
 				'price' => number_format((float)$child->get_price(), 2, '.', ''),
+				'instock' => $child->get_stock_status(),
+				'stock' => $child->get_stock_quantity(),
 			);
 		}
 		?>
@@ -63,11 +65,14 @@ function iww_bulk_form(){
 			<div id="var_bulk_form">
 				<?php
 				// TODO: Make price show discount go up or down
+				//<span class=" pl-2 price iww-bulk-price" style="font-size: 18px">$' . $var['price'] . ' </span>
 				foreach( $child_vars as $var ){
-					if( ! empty( $var['price'] ) ){
+					if( $var['instock'] == 'instock' ){
 						echo '<div class="row">';
 						echo '<div class="col-3"><input id="'. $var['id'] .'" type="number" min="0" placeholder="0" class="my-2 var-bulk-update qty" /></div>';
-						echo '<div class="col-9 my-2">' . $var['attr_str'] . '<br><label class="d-inline">SKU: ' . $var['sku'] . '<span class=" pl-2 price iww-bulk-price" style="font-size: 18px">$' . $var['price'] . ' </span><span class="d-none iww-base-price">' . $var['price'] . ' </span></span> Each.</label></div>';
+						echo '<div class="col-9 my-2">' . $var['attr_str'] . '<br><label class="d-inline">SKU: ' . $var['sku'] . '<span class="d-none iww-base-price">' . $var['price'] . ' </span></span></label>';
+						echo '<label>Stock: '. $var['stock'].'</label>';
+						echo '</div>';
 						echo '</div>';
 					}
 				}
@@ -139,7 +144,7 @@ function iww_bulk_discount(){
 
 			function fill_table_headers( $ ){
 				var ajaxurl = '<?php echo admin_url( 'admin-ajax.php' ); ?>';
-		    var id = $('input.variation_id').val();
+		    var id = '<?php echo $product->get_id(); ?>';
 				var ranges = new Array();
 		    var data = {
 					'action'   : 'ajax_discount_ranges',
@@ -147,7 +152,8 @@ function iww_bulk_discount(){
 					'dataType' : 'json'
 				};
 				$.post(ajaxurl, data, function(response){
-					// console.log(response);
+					console.log(id, response);
+
 					var ranges = response.match( /\d+/g );
 					$('#range_0').text('1 - ' + (+ranges[0] - 1) );
 					$('#range_1').text((ranges[0]) + ' - ' + (+ranges[1] - 1) );

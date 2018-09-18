@@ -1,31 +1,18 @@
 jQuery(document).ready( function($){
-  function debounce(func, wait, immediate) {
-    var timeout;
-    return function() {
-      var context = this, args = arguments;
-      var later = function() {
-        timeout = null;
-        if (!immediate) func.apply(context, args);
-      };
-      var callNow = immediate && !timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-      if (callNow) func.apply(context, args);
-    };
-  };
-
   // global captures every input
   var capture = [];
   var sitename = window.location.protocol + '//' + window.location.hostname;
   var $discount_box = $('#current_discount');
   // TODO: Prices must reflect each variation = maybe put each in its own div and change that way
-
   // console.log( base_price );
-  $('.var-bulk-update').blur( function(){
+  $('.var-bulk-update').keyup( function(){
     // order_list resets with each change
     var order_list = [];
     var qty_total = 0;
     var qty = this.value;
+
+    if( +qty > +$(this).attr('max') ) this.value = +$(this).attr('max');
+
     var id = jQuery(this).attr('id');
     /*
     TODO: Not sure if there is a better way to do key : value pairs in JS
@@ -45,79 +32,20 @@ jQuery(document).ready( function($){
         // order_list.push( key+':'+capture[key] );
       }
     }
+
     order_list = order_list.join(',');
 
-    $discount_box.html(
-      '<h3 class="m-0">Current Discount: ' + get_current_discount( qty_total ) + '%</h3>' + get_items_away_msg( qty_total )
-   );
+    var data = {
+      'action' : 'iww_create_url',
+      'list'   : order_list
+    };
 
-    $('.iww-bulk-price').each( function(){
-      var base_price = $(this).next().text();
-      $(this).html( get_discounted_price( base_price, qty_total ) );
-    } );
-
-    $( '#iww_bulk_form_submit' ).attr( 'href', sitename+ '/cart/?add-to-cart=' + order_list );
+    jQuery.post( iww_ajax.ajax_url, data, function( response ){
+      console.log( response );
+        $( '#iww_bulk_form_submit' ).attr( 'href', response );
+    });
 
   });
-
-  const maybePluralize = (count, noun, suffix = 's') => `${count} ${noun}${count !== 1 ? suffix : ''}`;
-
-  function get_items_away_msg( qty_total ){
-    while( qty_total >= 0 && qty_total < 12 ){
-      return '<p class="lead">' + maybePluralize(items_away( qty_total ), 'item') +' away from next discount.</p>';
-    }
-    return "";
-  }
-
-  // TODO: Would be very smart to define the discount ranges in a constant; and better yet get those ranges from the DB
-  function items_away( qty ){
-   if( qty < 4 ){
-     return 4 - qty;
-   } else if ( qty >= 4 && qty < 7 ) {
-     return 7 - qty;
-   } else {
-     return 12 - qty;
-   }
-  }
-
-  function get_current_discount(qty_total){
-    var discount = 0
-    if( qty_total >= 4 && qty_total <= 6 ){
-      discount = 5;
-    }
-    else if( qty_total >= 7 && qty_total <= 11 ){
-      discount = 10;
-    }
-    else if( qty_total > 11 ){
-      discount = 15;
-    }
-    return discount;
-  }
-
-  function get_discounted_price(base_price, qty_total){
-    return( discount( base_price, get_current_discount( qty_total ) ) );
-  }
-
-  function discount( price, discount ){
-    if( discount === 0 ) return;
-    var percent = 1 - ( discount / 100 );
-    var discount_price = ( price * percent );
-    return '$' + discount_price.toFixed(2);
-  }
-
-  function find_price( method = "object" ){
-    var $price_loc = $( '.woocommerce-variation-price' ).find( 'span.price' ).find( '.woocommerce-Price-amount.amount' );
-     if( ! $price_loc.length ){
-       $price_loc = $( '#price_range' ).find( 'span' ).find( '.woocommerce-Price-amount.amount' );
-     }
-     if( method === 'object' ){
-       return $price_loc;
-     } else {
-       return $price_loc.text();
-     }
-
-  }
-
 
     $( 'form' ).on( 'change', 'input.qty', function() {
       var options = $( 'table.variations select' );
@@ -171,3 +99,76 @@ jQuery(document).ready( function($){
       });
 
 });
+
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function() {
+    var context = this, args = arguments;
+    var later = function() {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+};
+
+const maybePluralize = (count, noun, suffix = 's') => `${count} ${noun}${count !== 1 ? suffix : ''}`;
+
+function get_items_away_msg( qty_total ){
+  while( qty_total >= 0 && qty_total < 12 ){
+    return '<p class="lead">' + maybePluralize(items_away( qty_total ), 'item') +' away from next discount.</p>';
+  }
+  return "";
+}
+
+// TODO: Would be very smart to define the discount ranges in a constant; and better yet get those ranges from the DB
+function items_away( qty ){
+ if( qty < 4 ){
+   return 4 - qty;
+ } else if ( qty >= 4 && qty < 7 ) {
+   return 7 - qty;
+ } else {
+   return 12 - qty;
+ }
+}
+
+function get_current_discount(qty_total){
+  var discount = 0
+  if( qty_total >= 4 && qty_total <= 6 ){
+    discount = 5;
+  }
+  else if( qty_total >= 7 && qty_total <= 11 ){
+    discount = 10;
+  }
+  else if( qty_total > 11 ){
+    discount = 15;
+  }
+  return discount;
+}
+
+function get_discounted_price(base_price, qty_total){
+  return( discount( base_price, get_current_discount( qty_total ) ) );
+}
+
+function discount( price, discount ){
+  if( discount === 0 ) return;
+  var percent = 1 - ( discount / 100 );
+  var discount_price = ( price * percent );
+  return '$' + discount_price.toFixed(2);
+}
+
+function find_price( method = "object" ){
+  var $price_loc = $( '.woocommerce-variation-price' ).find( 'span.price' ).find( '.woocommerce-Price-amount.amount' );
+   if( ! $price_loc.length ){
+     $price_loc = $( '#price_range' ).find( 'span' ).find( '.woocommerce-Price-amount.amount' );
+   }
+   if( method === 'object' ){
+     return $price_loc;
+   } else {
+     return $price_loc.text();
+   }
+
+}

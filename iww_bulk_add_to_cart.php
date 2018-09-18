@@ -9,38 +9,23 @@ Author URI: http:dev.iwantworkwear.com
 */
 // TODO: Bulk add to cart, cart page variations
 add_action( 'wp_enqueue_scripts', 'iww_bulk_add_scripts', 99);
+add_action( 'iww_bulk_tab', 'iww_bulk_form' );
+add_action( 'woocommerce_after_add_to_cart_button', 'iww_bulk_discount', 99  );
+add_filter( 'woocommerce_before_calculate_totals', 'custom_cart_items_prices', 10, 1 );
+
+add_action( 'wp_ajax_ajax_discount_ranges', 'ajax_discount_ranges' );
+add_action( 'wp_ajax_nopriv_ajax_discount_ranges', 'ajax_discount_ranges' );
+
+add_action('wp_ajax_iww_create_url', 'iww_create_url');
+add_action('wp_ajax_nopriv_iww_create_url', 'iww_create_url');
+
 
 function iww_bulk_add_scripts(){
-	wp_enqueue_script( 'iww_bulk_add', plugins_url( 'iww_bulk_add_to_cart.js', __FILE__ ), array('jquery'), 1.07 );
+	wp_enqueue_script( 'iww_bulk_add', plugins_url( 'iww_bulk_add_to_cart.js', __FILE__ ), array('jquery'), rand(1, 1000) );
+	wp_localize_script( 'iww_bulk_add', 'iww_ajax', array(
+		'ajax_url' => admin_url( 'admin-ajax.php' ),
+	) );
 }
-
-add_filter( 'woocommerce_before_calculate_totals', 'custom_cart_items_prices', 10, 1 );
-function custom_cart_items_prices( $cart_object ) {
-
-    if ( is_admin() && ! defined( 'DOING_AJAX' ) )
-        return;
-
-    // Iterating through cart items
-    foreach ( $cart_object->get_cart() as $cart_item ) {
-
-        // Get an instance of the WC_Product object
-        $wc_product = $cart_item['data'];
-
-        // Get the product name (WooCommerce versions 2.5.x to 3+)
-        $nicename = ( !empty( get_post_meta( $wc_product->get_id(), 'wccaf_nice_name' ) ) ) ? get_post_meta( $wc_product->get_id(), 'wccaf_nice_name' ) : $wc_product->get_name();
-
-        // SET THE NEW NAME
-        $new_name = $nicename[0];
-
-        // Set the new name (WooCommerce versions 2.5.x to 3+)
-        if( method_exists( $wc_product, 'set_name' ) )
-            $wc_product->set_name( $new_name );
-        else
-            $wc_product->post->post_title = $new_name;
-    }
-}
-
-add_action( 'iww_bulk_tab', 'iww_bulk_form' );
 
 function iww_bulk_form(){
 	global $product;
@@ -69,7 +54,7 @@ function iww_bulk_form(){
 				foreach( $child_vars as $var ){
 					if( $var['instock'] == 'instock' ){
 						echo '<div class="row">';
-						echo '<div class="col-3"><input id="'. $var['id'] .'" type="number" min="0" placeholder="0" class="my-2 var-bulk-update qty" /></div>';
+						echo '<div class="col-3"><input id="'. $var['id'] .'" type="number" min="0" max="'.$var['stock'].'" placeholder="0" class="my-2 var-bulk-update qty" /></div>';
 						echo '<div class="col-9 my-2">' . $var['attr_str'] . '<br><label class="d-inline">SKU: ' . $var['sku'] . '<span class="d-none iww-base-price">' . $var['price'] . ' </span></span></label>';
 						echo '<label>Stock: '. $var['stock'].'</label>';
 						echo '</div>';
@@ -84,11 +69,11 @@ function iww_bulk_form(){
 	}
 }
 
-add_action( 'woocommerce_after_add_to_cart_button', 'iww_bulk_discount', 99  );
-
-add_action( 'wp_ajax_ajax_discount_ranges', 'ajax_discount_ranges' );
-add_action( 'wp_ajax_nopriv_ajax_discount_ranges', 'ajax_discount_ranges' );
-
+function iww_create_url(){
+	$list = $_POST['list'];
+	echo esc_url_raw( add_query_arg( 'add-to-cart', $list, wc_get_checkout_url() ) );
+	wp_die();
+}
 /* get product type and fill table header accordingly, takes in $product->get_type() */
 
 function ajax_discount_ranges(){
@@ -173,7 +158,6 @@ function iww_bulk_discount(){
 					options.each( function() {
 						ready.push( this.value.length );
 					});
-
 					// all selections have been made
 					if ( ready.every( readyCheck ) ){
 						// return table via js
@@ -251,6 +235,31 @@ function iww_bulk_discount(){
 			</table>
 		</div>
 		<?php
+}
+
+function custom_cart_items_prices( $cart_object ) {
+
+    if ( is_admin() && ! defined( 'DOING_AJAX' ) )
+        return;
+
+    // Iterating through cart items
+    foreach ( $cart_object->get_cart() as $cart_item ) {
+
+        // Get an instance of the WC_Product object
+        $wc_product = $cart_item['data'];
+
+        // Get the product name (WooCommerce versions 2.5.x to 3+)
+        $nicename = ( !empty( get_post_meta( $wc_product->get_id(), 'wccaf_nice_name' ) ) ) ? get_post_meta( $wc_product->get_id(), 'wccaf_nice_name' ) : $wc_product->get_name();
+
+        // SET THE NEW NAME
+        $new_name = $nicename[0];
+
+        // Set the new name (WooCommerce versions 2.5.x to 3+)
+        if( method_exists( $wc_product, 'set_name' ) )
+            $wc_product->set_name( $new_name );
+        else
+            $wc_product->post->post_title = $new_name;
+    }
 }
 
 function woocommerce_maybe_add_multiple_products_to_cart( $url = false ) {

@@ -16,8 +16,6 @@ add_filter( 'woocommerce_before_calculate_totals', 'custom_cart_items_prices', 1
 add_action( 'wp_ajax_ajax_discount_ranges', 'ajax_discount_ranges' );
 add_action( 'wp_ajax_nopriv_ajax_discount_ranges', 'ajax_discount_ranges' );
 
-add_action('wp_ajax_iww_create_url', 'iww_create_url');
-add_action('wp_ajax_nopriv_iww_create_url', 'iww_create_url');
 
 
 function iww_bulk_add_scripts(){

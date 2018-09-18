@@ -5,7 +5,7 @@ jQuery(document).ready( function($){
   var $discount_box = $('#current_discount');
   // TODO: Prices must reflect each variation = maybe put each in its own div and change that way
   // console.log( base_price );
-  $('.var-bulk-update').keyup( function(){
+  $('.var-bulk-update').change( function(){
     // order_list resets with each change
     var order_list = [];
     var qty_total = 0;
@@ -29,21 +29,22 @@ jQuery(document).ready( function($){
           // formatting; if qty is 1, only push the key, not the value for -> woocommerce_maybe_add_multiple_products_to_cart()
           ( capture[key] > 1 ) ? order_list.push( key+':'+capture[key] ) : order_list.push( key );
         }
-        // order_list.push( key+':'+capture[key] );
       }
     }
 
     order_list = order_list.join(',');
 
-    var data = {
-      'action' : 'iww_create_url',
-      'list'   : order_list
-    };
 
-    jQuery.post( iww_ajax.ajax_url, data, function( response ){
-      console.log( response );
-        $( '#iww_bulk_form_submit' ).attr( 'href', response );
-    });
+
+    var url = sitename + '/cart/?add-to-cart=' + order_list;
+
+    console.log( order_list );
+    var $bulk_submit = $( '#iww_bulk_form_submit' );
+    if ( ! order_list.length ) {
+      $bulk_submit.attr( 'href', '#' );
+    } else {
+      $bulk_submit.attr( 'href', url );
+    }
 
   });
 
